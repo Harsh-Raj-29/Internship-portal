@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Post Internship | InternHub</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    body { background: #f8faff; font-family: 'Segoe UI', sans-serif; }
+    .navbar { background: #4f46e5; }
+    .navbar-brand { color: white !important; font-weight: 700; }
+    .nav-link { color: rgba(255,255,255,0.85) !important; }
+    .form-card {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .btn-post {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 32px;
+      font-weight: 600;
+      font-size: 1rem;
+      width: 100%;
+    }
+    .btn-post:hover { background: #4338ca; color: white; }
+    .skill-tag {
+      background: #eef2ff;
+      color: #4f46e5;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      margin: 3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .skill-tag .remove {
+      cursor: pointer;
+      font-weight: 700;
+      color: #818cf8;
+    }
+    .skill-tag .remove:hover { color: #dc2626; }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">🎯 InternHub</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto align-items-center gap-2">
+          <li class="nav-item">
+            <a class="nav-link" href="company-dashboard.html">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">
+              Logout
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4" style="max-width: 700px;">
+    <div class="form-card">
+      <h4 class="fw-bold mb-1">📢 Post a New Internship</h4>
+      <p class="text-muted mb-4">Fill in the details to attract the right candidates</p>
+
+      <div id="successMsg" class="alert alert-success d-none"></div>
+      <div id="errorMsg" class="alert alert-danger d-none"></div>
+
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Internship Title</label>
+          <input type="text" id="title" class="form-control"
+            placeholder="e.g. Frontend Developer Intern"/>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Location</label>
+          <input type="text" id="location" class="form-control"
+            placeholder="e.g. Bangalore or Remote"/>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Duration</label>
+          <input type="text" id="duration" class="form-control"
+            placeholder="e.g. 3 months"/>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Stipend (₹/month)</label>
+          <input type="number" id="stipend" class="form-control"
+            placeholder="e.g. 15000"/>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Openings</label>
+          <input type="number" id="openings" class="form-control"
+            placeholder="e.g. 3"/>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Minimum CGPA</label>
+          <input type="number" id="minCGPA" class="form-control"
+            placeholder="e.g. 7.0" min="0" max="10" step="0.1"/>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Graduation Year</label>
+          <select id="graduationYear" class="form-control">
+            <option value="">Any Year</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+          </select>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Description</label>
+          <textarea id="description" class="form-control" rows="4"
+            placeholder="Describe the internship role, responsibilities...">
+          </textarea>
+        </div>
+
+        <!-- Skills -->
+        <div class="col-12">
+          <label class="form-label fw-semibold">Required Skills</label>
+          <div class="d-flex gap-2 mb-2">
+            <input type="text" id="skillInput" class="form-control"
+              placeholder="Type a skill and press Enter or Add"/>
+            <button class="btn btn-outline-primary" onclick="addSkill()">
+              Add
+            </button>
+          </div>
+          <div id="skillTags"></div>
+          <small class="text-muted">e.g. HTML, CSS, React, Node.js</small>
+        </div>
+
+      </div>
+
+      <div class="mt-4">
+        <button class="btn-post" onclick="postInternship()">
+          🚀 Post Internship
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    requireAuth();
+
+    const user = getUser();
+    if (!user || user.role !== 'company') {
+      window.location.href = 'index.html';
+    }
+
+    let skills = [];
+
+    document.getElementById('skillInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addSkill();
+    });
+
+    function addSkill() {
+      const input = document.getElementById('skillInput');
+      const skill = input.value.trim();
+      if (skill && !skills.includes(skill)) {
+        skills.push(skill);
+        renderSkills();
+      }
+      input.value = '';
+    }
+
+    function removeSkill(index) {
+      skills.splice(index, 1);
+      renderSkills();
+    }
+
+    function renderSkills() {
+      document.getElementById('skillTags').innerHTML = skills.map((s, i) => `
+        <span class="skill-tag">
+          ${s}
+          <span class="remove" onclick="removeSkill(${i})">×</span>
+        </span>
+      `).join('');
+    }
+
+    async function postInternship() {
+      const successMsg = document.getElementById('successMsg');
+      const errorMsg = document.getElementById('errorMsg');
+      successMsg.classList.add('d-none');
+      errorMsg.classList.add('d-none');
+
+      const data = {
+        title: document.getElementById('title').value,
+        location: document.getElementById('location').value,
+        duration: document.getElementById('duration').value,
+        stipend: parseInt(document.getElementById('stipend').value),
+        openings: parseInt(document.getElementById('openings').value),
+        minCGPA: parseFloat(document.getElementById('minCGPA').value),
+        graduationYear: parseInt(document.getElementById('graduationYear').value),
+        description: document.getElementById('description').value,
+        requiredSkills: skills
+      };
+
+      if (!data.title || !data.location || !data.duration) {
+        errorMsg.classList.remove('d-none');
+        errorMsg.textContent = 'Please fill title, location and duration!';
+        return;
+      }
+
+      const result = await internshipAPI.post(data);
+
+      if (result.internship) {
+        successMsg.classList.remove('d-none');
+        successMsg.textContent =
+          '✅ Internship posted successfully! Redirecting...';
+        setTimeout(() => {
+          window.location.href = 'company-dashboard.html';
+        }, 1500);
+      } else {
+        errorMsg.classList.remove('d-none');
+        errorMsg.textContent = result.message || 'Failed to post internship';
+      }
+    }
+  </script>
+</body>
+</html>

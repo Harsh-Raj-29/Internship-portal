@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard | InternHub</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    body { background: #f8faff; font-family: 'Segoe UI', sans-serif; }
+    .navbar { background: #4f46e5; }
+    .navbar-brand { color: white !important; font-weight: 700; }
+    .nav-link { color: rgba(255,255,255,0.85) !important; }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #4f46e5;
+    }
+    .stat-label { color: #6b7280; font-size: 0.9rem; }
+
+    .app-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      margin-bottom: 14px;
+      border-left: 4px solid #e5e7eb;
+      transition: transform 0.2s;
+    }
+    .app-card:hover { transform: translateX(4px); }
+    .app-card.applied { border-left-color: #4f46e5; }
+    .app-card.shortlisted { border-left-color: #f59e0b; }
+    .app-card.selected { border-left-color: #10b981; }
+    .app-card.rejected { border-left-color: #ef4444; }
+
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .status-applied {
+      background: #eef2ff; color: #4f46e5;
+    }
+    .status-shortlisted {
+      background: #fffbeb; color: #d97706;
+    }
+    .status-selected {
+      background: #f0fdf4; color: #059669;
+    }
+    .status-rejected {
+      background: #fef2f2; color: #dc2626;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">🎯 InternHub</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto align-items-center gap-2">
+          <li class="nav-item"><a class="nav-link" href="listings.html">Browse</a></li>
+          <li class="nav-item"><a class="nav-link" href="profile.html">My Profile</a></li>
+          <li class="nav-item">
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h4 class="fw-bold mb-0" id="welcomeText">My Dashboard</h4>
+        <p class="text-muted mb-0">Track all your internship applications</p>
+      </div>
+      <a href="listings.html" class="btn btn-primary">
+        🔍 Find Internships
+      </a>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-number" id="totalCount">0</div>
+          <div class="stat-label">Total Applied</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-number" id="shortlistedCount"
+            style="color:#d97706">0</div>
+          <div class="stat-label">Shortlisted</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-number" id="selectedCount"
+            style="color:#059669">0</div>
+          <div class="stat-label">Selected</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="stat-number" id="rejectedCount"
+            style="color:#dc2626">0</div>
+          <div class="stat-label">Rejected</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      <button class="btn btn-primary btn-sm" onclick="filterApps('all')"
+        id="tab-all">All</button>
+      <button class="btn btn-outline-secondary btn-sm"
+        onclick="filterApps('applied')" id="tab-applied">Applied</button>
+      <button class="btn btn-outline-warning btn-sm"
+        onclick="filterApps('shortlisted')" id="tab-shortlisted">Shortlisted</button>
+      <button class="btn btn-outline-success btn-sm"
+        onclick="filterApps('selected')" id="tab-selected">Selected</button>
+      <button class="btn btn-outline-danger btn-sm"
+        onclick="filterApps('rejected')" id="tab-rejected">Rejected</button>
+    </div>
+
+    <!-- Applications List -->
+    <div id="applicationsList">
+      <div class="empty-state">⏳ Loading your applications...</div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    requireAuth();
+
+    const user = getUser();
+    let allApplications = [];
+
+    if (user) {
+      document.getElementById('welcomeText').textContent =
+        `Welcome back, ${user.name.split(' ')[0]}! 👋`;
+    }
+
+    async function loadApplications() {
+      const apps = await applicationAPI.getMyApplications();
+
+      if (!apps || apps.message) {
+        document.getElementById('applicationsList').innerHTML = `
+          <div class="empty-state">
+            <div style="font-size:3rem">😕</div>
+            <h5 class="mt-3">Could not load applications</h5>
+            <p>Make sure you are logged in</p>
+          </div>`;
+        return;
+      }
+
+      allApplications = apps;
+      updateStats(apps);
+      renderApplications(apps);
+    }
+
+    function updateStats(apps) {
+      document.getElementById('totalCount').textContent = apps.length;
+      document.getElementById('shortlistedCount').textContent =
+        apps.filter(a => a.status === 'shortlisted').length;
+      document.getElementById('selectedCount').textContent =
+        apps.filter(a => a.status === 'selected').length;
+      document.getElementById('rejectedCount').textContent =
+        apps.filter(a => a.status === 'rejected').length;
+    }
+
+    function renderApplications(apps) {
+      const list = document.getElementById('applicationsList');
+
+      if (apps.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div style="font-size:3rem">📭</div>
+            <h5 class="mt-3">No applications yet</h5>
+            <p>Start applying to internships!</p>
+            <a href="listings.html" class="btn btn-primary mt-2">
+              Browse Internships
+            </a>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = apps.map(app => `
+        <div class="app-card ${app.status}">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <h6 class="fw-bold mb-1">
+                ${app.internship?.title || 'Internship'}
+              </h6>
+              <div class="text-muted small mb-1">
+                🏢 ${app.internship?.company?.name || 'Company'} &nbsp;|&nbsp;
+                📍 ${app.internship?.location || 'Location'} &nbsp;|&nbsp;
+                ₹${app.internship?.stipend?.toLocaleString() || '0'}/month
+              </div>
+              <div class="text-muted small">
+                🕐 Applied on ${new Date(app.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+            <span class="status-badge status-${app.status}">
+              ${getStatusEmoji(app.status)} ${capitalize(app.status)}
+            </span>
+          </div>
+
+          ${app.coverLetter ? `
+            <div class="mt-2 p-2 rounded" style="background:#f8faff; font-size:0.85rem">
+              <strong>Cover Letter:</strong> ${app.coverLetter}
+            </div>` : ''}
+
+          <div class="mt-2">
+            <a href="internship.html?id=${app.internship?._id}"
+              class="btn btn-outline-primary btn-sm">
+              View Internship
+            </a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterApps(status) {
+      // Update active tab
+      document.querySelectorAll('[id^="tab-"]').forEach(btn => {
+        btn.className = btn.className.replace('btn-primary', 'btn-outline-secondary');
+      });
+      document.getElementById(`tab-${status}`).className =
+        document.getElementById(`tab-${status}`).className
+          .replace('btn-outline-secondary', 'btn-primary')
+          .replace('btn-outline-warning', 'btn-warning')
+          .replace('btn-outline-success', 'btn-success')
+          .replace('btn-outline-danger', 'btn-danger');
+
+      if (status === 'all') {
+        renderApplications(allApplications);
+      } else {
+        renderApplications(allApplications.filter(a => a.status === status));
+      }
+    }
+
+    function getStatusEmoji(status) {
+      const emojis = {
+        applied: '📩',
+        shortlisted: '⭐',
+        selected: '🎉',
+        rejected: '❌'
+      };
+      return emojis[status] || '📩';
+    }
+
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    loadApplications();
+  </script>
+</body>
+</html>

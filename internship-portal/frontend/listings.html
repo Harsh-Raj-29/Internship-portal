@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Browse Internships | InternHub</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    body { background: #f8faff; font-family: 'Segoe UI', sans-serif; }
+    .navbar { background: #4f46e5; }
+    .navbar-brand { color: white !important; font-weight: 700; }
+    .nav-link { color: rgba(255,255,255,0.85) !important; }
+
+    .filter-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      position: sticky;
+      top: 20px;
+    }
+    .internship-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      margin-bottom: 16px;
+      transition: transform 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .internship-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(79,70,229,0.15);
+      color: inherit;
+    }
+    .company-name { color: #4f46e5; font-weight: 600; }
+    .badge-skill {
+      background: #eef2ff;
+      color: #4f46e5;
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      margin: 2px;
+      display: inline-block;
+    }
+    .badge-location {
+      background: #f0fdf4;
+      color: #16a34a;
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 0.82rem;
+    }
+    .badge-stipend {
+      background: #fff7ed;
+      color: #ea580c;
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 0.82rem;
+    }
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: #6b7280;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">🎯 InternHub</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto align-items-center gap-2">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="profile.html">My Profile</a></li>
+          <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+          <li class="nav-item" id="authButtons">
+            <a href="login.html" class="btn btn-outline-light btn-sm me-2">Login</a>
+            <a href="register.html" class="btn btn-light btn-sm">Register</a>
+          </li>
+          <li class="nav-item d-none" id="logoutBtn">
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <div class="row">
+
+      <!-- Filters Sidebar -->
+      <div class="col-lg-3 mb-4">
+        <div class="filter-card">
+          <h6 class="fw-bold mb-3">🔧 Filters</h6>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Role / Title</label>
+            <input type="text" id="filterRole" class="form-control form-control-sm"
+              placeholder="e.g. Frontend"/>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Location</label>
+            <input type="text" id="filterLocation" class="form-control form-control-sm"
+              placeholder="e.g. Bangalore"/>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Min Stipend (₹)</label>
+            <input type="number" id="filterStipend" class="form-control form-control-sm"
+              placeholder="e.g. 10000"/>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Graduation Year</label>
+            <select id="filterYear" class="form-control form-control-sm">
+              <option value="">All Years</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+              <option value="2028">2028</option>
+            </select>
+          </div>
+
+          <button class="btn btn-primary btn-sm w-100" onclick="applyFilters()">
+            Apply Filters
+          </button>
+          <button class="btn btn-outline-secondary btn-sm w-100 mt-2" onclick="clearFilters()">
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0" id="resultsTitle">All Internships</h5>
+          <span class="text-muted small" id="resultsCount"></span>
+        </div>
+
+        <div id="internshipList">
+          <div class="loading">⏳ Loading internships...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // Show/hide nav
+    const user = getUser();
+    if (user) {
+      document.getElementById('authButtons').classList.add('d-none');
+      document.getElementById('logoutBtn').classList.remove('d-none');
+    }
+
+    // Get URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('role')) document.getElementById('filterRole').value = urlParams.get('role');
+    if (urlParams.get('location')) document.getElementById('filterLocation').value = urlParams.get('location');
+    if (urlParams.get('graduationYear')) document.getElementById('filterYear').value = urlParams.get('graduationYear');
+
+    // Load internships on page load
+    loadInternships();
+
+    async function loadInternships() {
+      const filters = {
+        role: document.getElementById('filterRole').value,
+        location: document.getElementById('filterLocation').value,
+        minStipend: document.getElementById('filterStipend').value,
+        graduationYear: document.getElementById('filterYear').value
+      };
+
+      // Remove empty filters
+      Object.keys(filters).forEach(k => !filters[k] && delete filters[k]);
+
+      const internships = await internshipAPI.search(filters);
+      renderInternships(internships);
+    }
+
+    function renderInternships(internships) {
+      const list = document.getElementById('internshipList');
+      const count = document.getElementById('resultsCount');
+
+      if (!internships || internships.length === 0) {
+        list.innerHTML = `
+          <div class="no-results">
+            <div style="font-size:3rem">🔍</div>
+            <h5 class="mt-3">No internships found</h5>
+            <p>Try changing your filters or search term</p>
+          </div>`;
+        count.textContent = '';
+        return;
+      }
+
+      count.textContent = `${internships.length} internship(s) found`;
+
+      list.innerHTML = internships.map(i => `
+        <a class="internship-card" href="internship.html?id=${i._id}">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h5 class="fw-bold mb-1">${i.title}</h5>
+              
+              <div class="company-name mb-2">
+                🏢 ${i.company?.name || 'Company'}
+                ${i.company?.isVerified
+                  ? '<span style="background:#f0fdf4;color:#059669;padding:2px 8px;border-radius:20px;font-size:0.75rem;margin-left:6px">✅ Verified</span>'
+                  : '<span style="background:#fffbeb;color:#d97706;padding:2px 8px;border-radius:20px;font-size:0.75rem;margin-left:6px">⚠️ Unverified</span>'
+                }
+              </div>
+
+            </div>
+            <span class="badge-stipend">₹${i.stipend?.toLocaleString()}/month</span>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <span class="badge-location">📍 ${i.location}</span>
+            <span class="badge-stipend">⏱️ ${i.duration}</span>
+            <span class="badge-skill">Min CGPA: ${i.minCGPA}</span>
+            ${i.graduationYear ? `<span class="badge-skill">Batch: ${i.graduationYear}</span>` : ''}
+          </div>
+
+          <div class="mt-2">
+            ${i.requiredSkills?.map(s => `<span class="badge-skill">${s}</span>`).join('') || ''}
+          </div>
+
+          <div class="mt-2 text-muted small">
+            🕐 Posted ${new Date(i.createdAt).toLocaleDateString()}
+          </div>
+        </a>
+      `).join('');
+    }
+
+    function applyFilters() {
+      loadInternships();
+    }
+
+    function clearFilters() {
+      document.getElementById('filterRole').value = '';
+      document.getElementById('filterLocation').value = '';
+      document.getElementById('filterStipend').value = '';
+      document.getElementById('filterYear').value = '';
+      loadInternships();
+    }
+  </script>
+</body>
+</html>

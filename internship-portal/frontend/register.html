@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register | Internship Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    body { background: #f0f4ff; }
+    .card { border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .btn-primary { background: #4f46e5; border: none; }
+    .btn-primary:hover { background: #4338ca; }
+    .role-btn { cursor: pointer; border: 2px solid #e5e7eb; border-radius: 10px; padding: 12px; transition: all 0.2s; }
+    .role-btn.active { border-color: #4f46e5; background: #eef2ff; }
+  </style>
+</head>
+<body class="d-flex align-items-center justify-content-center min-vh-100">
+  <div class="card p-4" style="width: 100%; max-width: 420px;">
+    <h3 class="text-center mb-1 fw-bold text-primary">Create Account 🚀</h3>
+    <p class="text-center text-muted mb-4">Join the Internship Portal</p>
+
+    <div id="errorMsg" class="alert alert-danger d-none"></div>
+    <div id="successMsg" class="alert alert-success d-none"></div>
+
+    <!-- Role Selection -->
+    <p class="fw-bold mb-2">I am a:</p>
+    <div class="d-flex gap-3 mb-3">
+      <div class="role-btn active text-center flex-fill" id="studentBtn" onclick="selectRole('student')">
+        🎓 <strong>Student</strong>
+      </div>
+      <div class="role-btn text-center flex-fill" id="companyBtn" onclick="selectRole('company')">
+        🏢 <strong>Company</strong>
+      </div>
+    </div>
+
+    <input type="hidden" id="role" value="student"/>
+
+    <div class="mb-3">
+      <label class="form-label">Full Name</label>
+      <input type="text" id="name" class="form-control" placeholder="Harsh Shah"/>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Email</label>
+      <input type="email" id="email" class="form-control" placeholder="you@example.com"/>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Password</label>
+      <input type="password" id="password" class="form-control" placeholder="••••••••"/>
+    </div>
+
+    <button class="btn btn-primary w-100 py-2 mb-3" onclick="handleRegister()">
+      Create Account
+    </button>
+
+    <p class="text-center text-muted">
+      Already have an account?
+      <a href="login.html" class="text-primary fw-bold">Login</a>
+    </p>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    redirectIfLoggedIn();
+
+    function selectRole(role) {
+      document.getElementById('role').value = role;
+      document.getElementById('studentBtn').classList.toggle('active', role === 'student');
+      document.getElementById('companyBtn').classList.toggle('active', role === 'company');
+    }
+
+    async function handleRegister() {
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const role = document.getElementById('role').value;
+      const errorMsg = document.getElementById('errorMsg');
+      const successMsg = document.getElementById('successMsg');
+
+      if (!name || !email || !password) {
+        errorMsg.classList.remove('d-none');
+        errorMsg.textContent = 'Please fill in all fields';
+        return;
+      }
+
+      const data = await authAPI.register({ name, email, password, role });
+
+      if (data.token) {
+        saveAuth(data);
+        successMsg.classList.remove('d-none');
+        successMsg.textContent = 'Account created! Redirecting...';
+        setTimeout(() => window.location.href = 'index.html', 1500);
+      } else {
+        errorMsg.classList.remove('d-none');
+        errorMsg.textContent = data.message || 'Registration failed';
+      }
+    }
+  </script>
+</body>
+</html>
