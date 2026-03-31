@@ -55,6 +55,14 @@ router.get('/me', auth, async (req, res) => {
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
+    if (profile && profile.resumeUrl) {
+    const fs = require('fs');
+    const filePath = '.' + profile.resumeUrl;
+    if (!fs.existsSync(filePath)) {
+    profile.resumeUrl = null;
+    await profile.save();
+   }
+   } 
 
     res.json(profile);
 
@@ -104,5 +112,7 @@ router.get('/skillgap/:internshipId', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
+
 
 module.exports = router;

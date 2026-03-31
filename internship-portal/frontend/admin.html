@@ -215,9 +215,15 @@
                 🏢 ${internship.company?.name} |
                 📍 ${internship.location}
               </div>
-              <div class="text-danger small mt-1">
-                🚩 Reported ${internship.reportCount} time(s)
-              </div>
+            <div class="text-danger small mt-1 fw-bold">
+              ${internship.reportCount >= 4
+              ? '🚨 HIGH RISK — Multiple reports, likely fake!'
+              : internship.reportCount >= 2
+              ? '⚠️ MODERATE RISK — Review carefully'
+              : '📋 LOW RISK — Single report, verify before action'
+              }
+              (${internship.reportCount} report(s))
+            </div>
               <div class="mt-2">
                 ${internship.reports?.map(r => `
                   <div class="small text-muted">

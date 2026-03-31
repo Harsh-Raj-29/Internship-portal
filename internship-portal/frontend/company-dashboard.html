@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -137,6 +136,9 @@
                     <li class="nav-item">
                         <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
                     </li>
+                    <li class="nav-item">
+                       <a class="nav-link" href="company-profile.html">My Profile</a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -188,34 +190,37 @@
         <div id="applicationsList">
             <div class="text-center py-5 text-muted">⏳ Loading...</div>
         </div>
-
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script>
         requireAuth();
         const user = getUser();
-
         if (!user || user.role !== 'company') {
             window.location.href = 'index.html';
         }
-
         document.getElementById('companyName').textContent =
             `Welcome, ${user.name}! 🏢`;
-
         async function loadDashboard() {
             // Get all internships posted by this company
-            const internships = await internshipAPI.search({});
-            const myInternships = internships.filter(i =>
-                i.company?._id === user.id || i.company === user.id
-            );
+           const internships = await internshipAPI.search({});
+           const myInternships = internships.filter(i => {
+           const companyId = i.company?._id || i.company;
+           return String(companyId) === String(user.id);
+           });
+
+           console.log('My internships found:', myInternships.length);
+console.log('User ID:', user.id);
+console.log('All internships:', internships.map(i => ({
+  title: i.title,
+  companyId: i.company?._id
+})));
+
 
             document.getElementById('totalInternships').textContent =
                 myInternships.length;
             document.getElementById('applicationsList').innerHTML = '';    
-
             if (myInternships.length === 0) {
                 document.getElementById('applicationsList').innerHTML = `
           <div class="text-center py-5 text-muted">
@@ -227,7 +232,6 @@
           </div>`;
                 return;
             }
-
             // Get applications for each internship
             let allApps = [];
             for (const internship of myInternships) {
@@ -240,7 +244,6 @@
                  renderInternshipSection(internship, []);
                 }
             }
-
             // Update stats
             document.getElementById('totalApplications').textContent = allApps.length;
             document.getElementById('shortlistedCount').textContent =
@@ -249,14 +252,15 @@
                 allApps.filter(a => a.status === 'selected').length;
         }
 
-        async function getApplicationsByInternship(internshipId) {
-            const res = await fetch(
-                `http://localhost:5000/api/applications/internship/${internshipId}`,
-                { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }
-            );
-            return res.json();
-        }
-
+       async function getApplicationsByInternship(internshipId) {
+  const res = await fetch(
+    `/api/applications/internship/${internshipId}`,
+    { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }}
+  );
+  const data = await res.json();
+  console.log('Applications for', internshipId, ':', data);
+  return data;
+}
         function renderInternshipSection(internship, apps) {
             const list = document.getElementById('applicationsList');
 
@@ -271,7 +275,6 @@
   </div>
   <div class="d-flex gap-2 align-items-center">
     <span class="badge bg-primary">${apps.length} applications</span>
-    
     <button class="btn btn-outline-primary btn-sm"
       onclick="editInternship('${internship._id}')">
       ✏️ Edit
@@ -280,10 +283,8 @@
       onclick="deleteInternship('${internship._id}', this)">
       🗑️ Delete
     </button>
-    
      </div>
   </div>
-
         ${apps.length === 0 ? `
           <p class="text-muted small">No applications yet for this internship.</p>
         ` : apps.map(app => `
@@ -300,6 +301,18 @@
                   <div class="text-muted small mt-1">
                     💬 "${app.coverLetter.substring(0, 80)}..."
                   </div>` : ''}
+
+                  ${app.student?.profile?.resumeUrl ? `
+                  <div class="mt-1">
+                    <a href="${app.student.profile.resumeUrl}" target="_blank"
+                      class="btn btn-outline-secondary btn-sm">
+                      📄 View Resume
+                    </a>
+                  </div>` : '<div class="text-muted small mt-1">No resume uploaded</div>'
+                }
+
+
+
                 <div class="text-muted small mt-1">
                   🕐 Applied ${new Date(app.createdAt).toLocaleDateString()}
                 </div>
@@ -328,7 +341,6 @@
       `;
             list.appendChild(section);
         }
-
         async function updateStatus(appId, status) {
             const res = await fetch(
                 `http://localhost:5000/api/applications/${appId}/status`,
@@ -342,7 +354,6 @@
                 }
             );
             const data = await res.json();
-
             if (data.application) {
                 // Update badge in UI instantly
                 const badge = document.getElementById(`status-${appId}`);
@@ -353,7 +364,6 @@
                 alert(`✅ Status updated to ${capitalize(status)}!`);
             }
         }
-
         function capitalize(str) {
             return str.charAt(0).toUpperCase() + str.slice(1);
         }
@@ -377,5 +387,4 @@
         loadDashboard();
     </script>
 </body>
-
 </html>

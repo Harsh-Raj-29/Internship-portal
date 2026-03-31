@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Application = require('../models/application');
 const Internship = require('../models/internship');
 const auth = require('../middleware/auth');
@@ -103,7 +104,24 @@ router.get('/internship/:internshipId', auth, async (req, res) => {
       .populate('internship', 'title location stipend')
       .sort({ createdAt: -1 });
 
-    res.json(applications);
+    // Get resume for each student
+    const Profile = mongoose.models.Profile ||
+      mongoose.model('Profile', require('../models/Profile').schema);
+
+    const applicationsWithResume = await Promise.all(
+      applications.map(async (app) => {
+        const profile = await Profile.findOne({ user: app.student._id });
+        return {
+          ...app.toObject(),
+          student: {
+            ...app.student.toObject(),
+            profile: { resumeUrl: profile?.resumeUrl || null }
+          }
+        };
+      })
+    );
+
+    res.json(applicationsWithResume);
 
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });

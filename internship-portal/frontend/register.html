@@ -34,10 +34,22 @@
     </div>
 
     <input type="hidden" id="role" value="student"/>
+     <div id="companyFields" class="d-none">
+      <div class="mb-3">
+       <label class="form-label">Company Website</label>
+       <input type="url" id="companyWebsite" class="form-control"
+        placeholder="https://yourcompany.com"/>
+      </div>
+      <div class="mb-3">
+       <label class="form-label">LinkedIn Page</label>
+       <input type="url" id="companyLinkedIn" class="form-control"
+       placeholder="https://linkedin.com/company/yourcompany"/>
+      </div>
+    </div>
 
     <div class="mb-3">
       <label class="form-label">Full Name</label>
-      <input type="text" id="name" class="form-control" placeholder="Harsh Shah"/>
+      <input type="text" id="name" class="form-control" placeholder="Harsh Raj"/>
     </div>
 
     <div class="mb-3">
@@ -65,11 +77,19 @@
   <script>
     redirectIfLoggedIn();
 
-    function selectRole(role) {
-      document.getElementById('role').value = role;
-      document.getElementById('studentBtn').classList.toggle('active', role === 'student');
-      document.getElementById('companyBtn').classList.toggle('active', role === 'company');
-    }
+  function selectRole(role) {
+  document.getElementById('role').value = role;
+  document.getElementById('studentBtn').classList.toggle('active', role === 'student');
+  document.getElementById('companyBtn').classList.toggle('active', role === 'company');
+
+  // Show/hide company fields
+  const companyFields = document.getElementById('companyFields');
+  if (role === 'company') {
+    companyFields.classList.remove('d-none');
+  } else {
+    companyFields.classList.add('d-none');
+  }
+}
 
     async function handleRegister() {
       const name = document.getElementById('name').value;
@@ -85,7 +105,18 @@
         return;
       }
 
-      const data = await authAPI.register({ name, email, password, role });
+      const payload = {
+       name,
+       email,
+       password,
+       role,
+       ...(role === 'company' && {
+         companyWebsite: document.getElementById('companyWebsite')?.value,
+         companyLinkedIn: document.getElementById('companyLinkedIn')?.value
+       })
+      };
+
+const data = await authAPI.register(payload);
 
       if (data.token) {
         saveAuth(data);

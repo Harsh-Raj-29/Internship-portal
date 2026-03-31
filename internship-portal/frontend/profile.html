@@ -279,6 +279,21 @@
       </div>
 
       <div class="mt-4">
+
+        <!-- Resume Upload -->
+       <div class="col-12">
+         <label class="form-label fw-semibold">Resume (PDF only, max 5MB)</label>
+         <div class="d-flex gap-2 align-items-center">
+           <input type="file" id="resumeFile" class="form-control"
+             accept=".pdf"/>
+           <button class="btn btn-outline-primary" onclick="uploadResume()">
+             📄 Upload
+           </button>
+         </div>
+         <div id="resumeStatus" class="mt-2"></div>
+         <div id="currentResume" class="mt-2"></div>
+       </div>
+
         <button class="btn-save" onclick="saveProfile()">
           💾 Save Profile
         </button>
@@ -305,26 +320,43 @@
     }
 
     // Load existing profile
-    async function loadProfile() {
-      const profile = await profileAPI.getMe();
+  async function loadProfile() { 
+  const profile = await profileAPI.getMe();
 
-      if (profile && !profile.message) {
-        document.getElementById('cgpa').value = profile.cgpa || '';
-        document.getElementById('graduationYear').value =
-          profile.graduationYear || '';
-        document.getElementById('branch').value = profile.branch || '';
-        document.getElementById('college').value = profile.college || '';
-        document.getElementById('bio').value = profile.bio || '';
+  if (profile && !profile.message) {
+    document.getElementById('cgpa').value = profile.cgpa || '';
+    document.getElementById('graduationYear').value =
+      profile.graduationYear || '';
+    document.getElementById('branch').value = profile.branch || '';
+    document.getElementById('college').value = profile.college || '';
+    document.getElementById('bio').value = profile.bio || '';
 
-        skills = profile.skills || [];
-        renderSkills();
+    skills = profile.skills || [];
+    renderSkills();
 
-        document.getElementById('profileStatus').className =
-          'alert alert-success mb-0';
-        document.getElementById('profileStatus').textContent =
-          '✅ Profile complete! You can see skill gap on internship pages.';
-      }
-    }
+    // ✅ Show existing resume
+  if (profile.resumeUrl) {
+  document.getElementById('currentResume').innerHTML = `
+    <div class="alert alert-info small d-flex justify-content-between align-items-center">
+      <span>
+        📄 Current Resume:
+        <a href="${profile.resumeUrl}" target="_blank" class="ms-2 fw-bold">
+          View Resume
+        </a>
+      </span>
+      <button class="btn btn-outline-danger btn-sm"
+        onclick="deleteResume()">
+        🗑️ Delete
+      </button>
+    </div>`;
+}
+
+    document.getElementById('profileStatus').className =
+      'alert alert-success mb-0';
+    document.getElementById('profileStatus').textContent =
+      '✅ Profile complete! You can see skill gap on internship pages.';
+  }
+}
 
     // Render skill tags
     function renderSkills() {
@@ -387,6 +419,79 @@
         errorMsg.textContent = result.message || 'Failed to save profile';
       }
     }
+
+  async function uploadResume() {
+  const fileInput = document.getElementById('resumeFile');
+  const resumeStatus = document.getElementById('resumeStatus');
+
+  if (!fileInput.files[0]) {
+    resumeStatus.innerHTML = '<div class="alert alert-warning small">Please select a PDF file first!</div>';
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('resume', fileInput.files[0]);
+
+  resumeStatus.innerHTML = '<div class="alert alert-info small">⏳ Uploading...</div>';
+
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+    },
+    body: formData
+  });
+
+  const data = await res.json();
+
+  if (data.resumeUrl) {
+    resumeStatus.innerHTML = `
+      <div class="alert alert-success small">
+        ✅ Resume uploaded successfully!
+        <a href="${data.resumeUrl}" target="_blank" class="ms-2">
+          View Resume
+        </a>
+      </div>`;
+  } else {
+    resumeStatus.innerHTML = `
+      <div class="alert alert-danger small">
+        ❌ ${data.message}
+      </div>`;
+  }
+}
+
+async function deleteResume() {
+  if (!confirm('Are you sure you want to delete your resume?')) return;
+
+  const resumeStatus = document.getElementById('resumeStatus');
+  resumeStatus.innerHTML = '<div class="alert alert-info small">⏳ Deleting...</div>';
+
+  const res = await fetch('/api/upload', {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+    }
+  });
+
+  const data = await res.json();
+
+  if (data.message === 'Resume deleted successfully') {
+    document.getElementById('currentResume').innerHTML = '';
+    document.getElementById('resumeFile').value = '';
+    resumeStatus.innerHTML = `
+      <div class="alert alert-success small">
+        ✅ Resume deleted successfully!
+      </div>`;
+    setTimeout(() => {
+      resumeStatus.innerHTML = '';
+    }, 3000);
+  } else {
+    resumeStatus.innerHTML = `
+      <div class="alert alert-danger small">
+        ❌ ${data.message}
+      </div>`;
+  }
+}
 
     loadProfile();
   </script>

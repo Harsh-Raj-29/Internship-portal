@@ -10,7 +10,6 @@
     .navbar { background: #4f46e5; }
     .navbar-brand { color: white !important; font-weight: 700; }
     .nav-link { color: rgba(255,255,255,0.85) !important; }
-
     .detail-card {
       background: white;
       border-radius: 16px;
@@ -79,7 +78,6 @@
 </head>
 <body>
 
-  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg">
     <div class="container">
       <a class="navbar-brand" href="index.html">🎯 InternHub</a>
@@ -125,232 +123,200 @@
     let internshipData = null;
 
     async function loadPage() {
-      // Load internship details
       internshipData = await internshipAPI.getById(internshipId);
-
       let skillGapData = null;
-
-      // Load skill gap only if student is logged in
       if (user && user.role === 'student') {
         skillGapData = await profileAPI.getSkillGap(internshipId);
       }
-
       renderPage(internshipData, skillGapData);
     }
 
     function renderPage(internship, skillGap) {
       const content = document.getElementById('mainContent');
 
-      content.innerHTML = `
-        <div class="row">
-          <!-- Left Column -->
-          <div class="col-lg-8">
+      const verifiedBadge = internship.company?.isVerified
+        ? '<span style="background:#f0fdf4;color:#059669;padding:3px 10px;border-radius:20px;font-size:0.8rem;margin-left:8px">✅ Verified</span>'
+        : '<span style="background:#fffbeb;color:#d97706;padding:3px 10px;border-radius:20px;font-size:0.8rem;margin-left:8px">⚠️ Unverified</span>';
 
-            <!-- Header Card -->
-            <div class="detail-card">
-              <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-                <div>
-                  <h2 class="fw-bold mb-1">${internship.title}</h2>
-                  <div style="color:#4f46e5; font-weight:600; font-size:1.1rem">
-                    🏢 ${internship.company?.name || 'Company'}
-                    ${internship.company?.isVerified
-                      ? '<span style="background:#f0fdf4;color:#059669;padding:3px 10px;border-radius:20px;font-size:0.8rem;margin-left:8px">✅ Verified</span>'
-                      : '<span style="background:#fffbeb;color:#d97706;padding:3px 10px;border-radius:20px;font-size:0.8rem;margin-left:8px">⚠️ Unverified</span>'
-                    }
-                 </div>
-                </div>
-                <div class="text-end">
-                  <div style="font-size:1.5rem; font-weight:800; color:#ea580c">
-                    ₹${internship.stipend?.toLocaleString()}/mo
-                  </div>
-                  <small class="text-muted">Stipend</small>
-                </div>
-              </div>
+      const applySection = user && user.role === 'student'
+        ? `<textarea id="coverLetter" class="form-control mb-3"
+            rows="4" placeholder="Write a short cover letter..."></textarea>
+           <button class="btn-apply" onclick="handleApply()">
+             🚀 Apply for this Internship
+           </button>`
+        : user && user.role === 'company'
+        ? `<div class="alert alert-info">Companies cannot apply to internships.</div>`
+        : `<p class="text-muted mb-3">Login as a student to apply</p>
+           <a href="login.html" class="btn-apply text-center text-decoration-none d-block">
+             Login to Apply
+           </a>`;
 
-              <hr/>
+      const reportSection = user && user.role === 'student'
+        ? `<hr/>
+           <p class="small text-muted mb-2">🚩 Suspect this is fake?</p>
+           <button class="btn btn-outline-danger btn-sm w-100"
+             onclick="handleReport()">
+             Report this Internship
+           </button>
+           <div id="reportMsg" class="mt-2"></div>`
+        : '';
 
-              <div class="info-item">
-                <span class="info-label">📍 Location</span>
-                <span class="info-value">${internship.location}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">⏱️ Duration</span>
-                <span class="info-value">${internship.duration}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">🎓 Min CGPA</span>
-                <span class="info-value">${internship.minCGPA}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">📅 Batch</span>
-                <span class="info-value">${internship.graduationYear || 'Any'}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">💼 Openings</span>
-                <span class="info-value">${internship.openings}</span>
-              </div>
+      const skillGapSection = skillGap && !skillGap.message
+        ? `<div class="detail-card">
+            <h5 class="fw-bold mb-3">🧠 Your Skill Match</h5>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="small fw-semibold">Match Score</span>
+              <span class="fw-bold" style="color:#4f46e5">${skillGap.matchPercentage}%</span>
             </div>
-
-            <!-- Description -->
-            <div class="detail-card">
-              <h5 class="fw-bold mb-3">📋 About the Internship</h5>
-              <p class="text-muted">${internship.description || 'No description provided.'}</p>
+            <div class="progress mb-3">
+              <div class="progress-bar" style="width:${skillGap.matchPercentage}%"></div>
             </div>
-
-            <!-- Required Skills -->
-            <div class="detail-card">
-              <h5 class="fw-bold mb-3">🛠️ Required Skills</h5>
-              <div>
-                ${internship.requiredSkills?.map(s =>
-                  `<span class="badge-skill">${s}</span>`
-                ).join('') || 'Not specified'}
-              </div>
-            </div>
-
-          </div>
-
-          <!-- Right Column -->
-          <div class="col-lg-4">
-
-            <!-- Apply Card -->
-            <div class="detail-card">
-              <h5 class="fw-bold mb-3">Apply Now</h5>
-              ${user && user.role === 'student' ? `
-                <textarea id="coverLetter" class="form-control mb-3"
-                  rows="4" placeholder="Write a short cover letter..."></textarea>
-                <button class="btn-apply" onclick="handleApply()">
-                  🚀 Apply for this Internship
-                </button>
-              ` : user && user.role === 'company' ? `
-                <div class="alert alert-info">Companies cannot apply to internships.</div>
-              ` : `
-                <p class="text-muted mb-3">Login as a student to apply</p>
-                <a href="login.html" class="btn-apply text-center text-decoration-none d-block">
-                  Login to Apply
-                </a>
-              `}
-              <div id="applyMsg" class="mt-2"></div>
-               ${user && user.role === 'student' ? `
-              <hr/>
-              <div>
-                <p class="small text-muted mb-2">🚩 Suspect this is fake?</p>
-                <button class="btn btn-outline-danger btn-sm w-100"
-                  onclick="handleReport()">
-                  Report this Internship
-                </button>
-                <div id="reportMsg" class="mt-2"></div>
-              </div>
-`             : ''}
-
-            </div>
-
-            <!-- Skill Gap Card -->
-            ${skillGap && !skillGap.message ? `
-            <div class="detail-card">
-              <h5 class="fw-bold mb-3">🧠 Your Skill Match</h5>
-
-              <div class="d-flex justify-content-between mb-1">
-                <span class="small fw-semibold">Match Score</span>
-                <span class="fw-bold" style="color:#4f46e5">${skillGap.matchPercentage}%</span>
-              </div>
-              <div class="progress mb-3">
-                <div class="progress-bar" style="width:${skillGap.matchPercentage}%"></div>
-              </div>
-
-              <div class="mb-3">
-                <div class="small fw-semibold mb-1">✅ Skills You Have</div>
-                ${skillGap.matchedSkills.length > 0
-                  ? skillGap.matchedSkills.map(s => `<span class="badge-matched">${s}</span>`).join('')
-                  : '<span class="text-muted small">None matched</span>'
-                }
-              </div>
-
-              <div class="mb-3">
-                <div class="small fw-semibold mb-1">❌ Skills You Need</div>
-                ${skillGap.missingSkills.length > 0
-                  ? skillGap.missingSkills.map(s => `<span class="badge-missing">${s}</span>`).join('')
-                  : '<span class="text-success small fw-semibold">🎉 You have all skills!</span>'
-                }
-              </div>
-
-              <hr/>
-              <div class="d-flex gap-2 flex-wrap">
-                <span class="eligibility-badge ${skillGap.cgpaEligible
-                  ? 'bg-success text-white' : 'bg-danger text-white'}">
-                  ${skillGap.cgpaEligible ? '✅ CGPA Eligible' : '❌ CGPA Too Low'}
-                </span>
-                <span class="eligibility-badge ${skillGap.yearEligible
-                  ? 'bg-success text-white' : 'bg-danger text-white'}">
-                  ${skillGap.yearEligible ? '✅ Batch Match' : '❌ Batch Mismatch'}
-                </span>
-              </div>
-
-              ${!skillGap.eligible ? `
-                <div class="alert alert-warning mt-3 small">
-                  ⚠️ You may not meet all requirements but you can still apply!
-                </div>` : `
-                <div class="alert alert-success mt-3 small">
-                  🎉 You meet all requirements! Go ahead and apply.
-                </div>`
+            <div class="mb-3">
+              <div class="small fw-semibold mb-1">✅ Skills You Have</div>
+              ${skillGap.matchedSkills.length > 0
+                ? skillGap.matchedSkills.map(s =>
+                    '<span class="badge-matched">' + s + '</span>'
+                  ).join('')
+                : '<span class="text-muted small">None matched</span>'
               }
             </div>
-            ` : user && user.role === 'student' ? `
-            <div class="detail-card">
-              <h5 class="fw-bold mb-2">🧠 Skill Gap</h5>
-              <p class="text-muted small">Complete your profile to see your skill match!</p>
-              <a href="profile.html" class="btn btn-outline-primary btn-sm w-100">
-                Complete Profile
-              </a>
+            <div class="mb-3">
+              <div class="small fw-semibold mb-1">❌ Skills You Need</div>
+              ${skillGap.missingSkills.length > 0
+                ? skillGap.missingSkills.map(s =>
+                    '<span class="badge-missing">' + s + '</span>'
+                  ).join('')
+                : '<span class="text-success small fw-semibold">🎉 You have all skills!</span>'
+              }
             </div>
-            ` : ''}
+            <hr/>
+            <div class="d-flex gap-2 flex-wrap">
+              <span class="eligibility-badge ${skillGap.cgpaEligible
+                ? 'bg-success text-white' : 'bg-danger text-white'}">
+                ${skillGap.cgpaEligible ? '✅ CGPA Eligible' : '❌ CGPA Too Low'}
+              </span>
+              <span class="eligibility-badge ${skillGap.yearEligible
+                ? 'bg-success text-white' : 'bg-danger text-white'}">
+                ${skillGap.yearEligible ? '✅ Batch Match' : '❌ Batch Mismatch'}
+              </span>
+            </div>
+            ${!skillGap.eligible
+              ? '<div class="alert alert-warning mt-3 small">⚠️ You may not meet all requirements but you can still apply!</div>'
+              : '<div class="alert alert-success mt-3 small">🎉 You meet all requirements! Go ahead and apply.</div>'
+            }
+          </div>`
+        : user && user.role === 'student'
+        ? `<div class="detail-card">
+            <h5 class="fw-bold mb-2">🧠 Skill Gap</h5>
+            <p class="text-muted small">Complete your profile to see your skill match!</p>
+            <a href="profile.html" class="btn btn-outline-primary btn-sm w-100">
+              Complete Profile
+            </a>
+          </div>`
+        : '';
 
-          </div>
-        </div>
-      `;
+      content.innerHTML =
+        '<div class="row">' +
+          '<div class="col-lg-8">' +
+            '<div class="detail-card">' +
+              '<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">' +
+                '<div>' +
+                  '<h2 class="fw-bold mb-1">' + internship.title + '</h2>' +
+                  '<div style="color:#4f46e5;font-weight:600;font-size:1.1rem">' +
+                    '🏢 ' + (internship.company?.name || 'Company') + verifiedBadge +
+                  '</div>' +
+                '</div>' +
+                '<div class="text-end">' +
+                  '<div style="font-size:1.5rem;font-weight:800;color:#ea580c">' +
+                    '₹' + (internship.stipend?.toLocaleString()) + '/mo' +
+                  '</div>' +
+                  '<small class="text-muted">Stipend</small>' +
+                '</div>' +
+              '</div>' +
+              '<hr/>' +
+              '<div class="info-item"><span class="info-label">📍 Location</span><span class="info-value">' + internship.location + '</span></div>' +
+              '<div class="info-item"><span class="info-label">⏱️ Duration</span><span class="info-value">' + internship.duration + '</span></div>' +
+              '<div class="info-item"><span class="info-label">🎓 Min CGPA</span><span class="info-value">' + internship.minCGPA + '</span></div>' +
+              '<div class="info-item"><span class="info-label">📅 Batch</span><span class="info-value">' + (internship.graduationYear || 'Any') + '</span></div>' +
+              '<div class="info-item"><span class="info-label">💼 Openings</span><span class="info-value">' + internship.openings + '</span></div>' +
+            '</div>' +
+
+            '<div class="detail-card">' +
+              '<h5 class="fw-bold mb-3">📋 About the Internship</h5>' +
+              '<p class="text-muted">' + (internship.description || 'No description provided.') + '</p>' +
+            '</div>' +
+
+            '<div class="detail-card">' +
+              '<h5 class="fw-bold mb-3">🛠️ Required Skills</h5>' +
+              '<div>' +
+                (internship.requiredSkills?.map(s =>
+                  '<span class="badge-skill">' + s + '</span>'
+                ).join('') || 'Not specified') +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="col-lg-4">' +
+            '<div class="detail-card">' +
+              '<h5 class="fw-bold mb-3">Apply Now</h5>' +
+              applySection +
+              '<div id="applyMsg" class="mt-2"></div>' +
+              reportSection +
+            '</div>' +
+            skillGapSection +
+          '</div>' +
+        '</div>';
     }
 
     async function handleApply() {
       const coverLetter = document.getElementById('coverLetter').value;
       const applyMsg = document.getElementById('applyMsg');
-
       const result = await applicationAPI.apply(internshipId, coverLetter);
-
       if (result.message === 'Applied successfully!') {
-        applyMsg.innerHTML = `<div class="alert alert-success">
-          ✅ Applied successfully! Check your dashboard.
-        </div>`;
+        applyMsg.innerHTML = '<div class="alert alert-success">✅ Applied successfully! Check your dashboard.</div>';
         document.querySelector('.btn-apply').disabled = true;
       } else {
-        applyMsg.innerHTML = `<div class="alert alert-danger">
-          ❌ ${result.message}
-        </div>`;
+        applyMsg.innerHTML = '<div class="alert alert-danger">❌ ' + result.message + '</div>';
       }
     }
+
+    async function handleReport() {
+      const reasons = [
+        '1. Fake or non-existent company',
+        '2. Suspicious stipend amount',
+        '3. Asking for money or personal documents',
+        '4. Misleading job description',
+        '5. Other'
+      ];
+
+      const reason = prompt(
+        'Why are you reporting this internship?\n\n' +
+        reasons.join('\n') +
+        '\n\nType your reason or select a number (1-5):'
+      );
+
+      if (!reason) return;
+
+      const reasonMap = {
+        '1': 'Fake or non-existent company',
+        '2': 'Suspicious stipend amount',
+        '3': 'Asking for money or personal documents',
+        '4': 'Misleading job description',
+        '5': 'Other'
+      };
+
+      const finalReason = reasonMap[reason.trim()] || reason;
+      const result = await reportAPI.report(internshipId, finalReason);
+
+      const reportMsg = document.getElementById('reportMsg');
+      if (result.message === 'Internship reported successfully') {
+        reportMsg.innerHTML = '<div class="alert alert-success small">✅ Reported! Our admin team will review within 24 hours.</div>';
+      } else {
+        reportMsg.innerHTML = '<div class="alert alert-danger small">❌ ' + result.message + '</div>';
+      }
+    }
+
     loadPage();
-
-  async function handleReport() {
-  const reason = prompt(
-    'Why are you reporting this internship?\n\n' +
-    '1. Fake company\n2. Misleading information\n3. Suspicious stipend\n4. Other\n\n' +
-    'Type your reason:'
-  );
-
-  if (!reason) return;
-
-  const result = await reportAPI.report(internshipId, reason);
-
-  const reportMsg = document.getElementById('reportMsg');
-  if (result.message === 'Internship reported successfully') {
-    reportMsg.innerHTML = `<div class="alert alert-success small">
-      ✅ Reported successfully! Our team will review it.
-    </div>`;
-  } else {
-    reportMsg.innerHTML = `<div class="alert alert-danger small">
-      ❌ ${result.message}
-    </div>`;
-  }
-}
-
   </script>
 </body>
 </html>

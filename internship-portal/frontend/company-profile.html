@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Company Profile | InternHub</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    body { background: #f8faff; font-family: 'Segoe UI', sans-serif; }
+    .navbar { background: #4f46e5; }
+    .navbar-brand { color: white !important; font-weight: 700; }
+    .nav-link { color: rgba(255,255,255,0.85) !important; }
+    .profile-card {
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .btn-save {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 32px;
+      font-weight: 600;
+      font-size: 1rem;
+      width: 100%;
+    }
+    .btn-save:hover { background: #4338ca; color: white; }
+    .avatar {
+      width: 80px;
+      height: 80px;
+      background: #4f46e5;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: white;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">🎯 InternHub</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto align-items-center gap-2">
+          <li class="nav-item">
+            <a class="nav-link" href="company-dashboard.html">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">
+              Logout
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4" style="max-width: 700px;">
+
+    <!-- Header -->
+    <div class="profile-card mb-4">
+      <div class="d-flex align-items-center gap-3">
+        <div class="avatar" id="avatarText">?</div>
+        <div>
+          <h4 class="fw-bold mb-0" id="companyName">Loading...</h4>
+          <span class="text-muted" id="companyEmail"></span>
+          <div id="verifiedStatus" class="mt-1"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="profile-card">
+      <h5 class="fw-bold mb-4">✏️ Edit Company Profile</h5>
+
+      <div id="successMsg" class="alert alert-success d-none"></div>
+      <div id="errorMsg" class="alert alert-danger d-none"></div>
+
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Company Name</label>
+          <input type="text" id="name" class="form-control"
+            placeholder="e.g. TechCorp"/>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Email</label>
+          <input type="email" id="email" class="form-control"
+            placeholder="hr@techcorp.com"/>
+          <small class="text-muted">
+            Use your official company email domain
+          </small>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Company Website</label>
+          <input type="url" id="companyWebsite" class="form-control"
+            placeholder="https://techcorp.com"/>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">LinkedIn Page</label>
+          <input type="url" id="companyLinkedIn" class="form-control"
+            placeholder="https://linkedin.com/company/techcorp"/>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button class="btn-save" onclick="saveProfile()">
+          💾 Save Changes
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    requireAuth();
+    const user = getUser();
+
+    if (!user || user.role !== 'company') {
+      window.location.href = 'index.html';
+    }
+
+    // Set header info
+    document.getElementById('companyName').textContent = user.name;
+    document.getElementById('companyEmail').textContent = user.email;
+    document.getElementById('avatarText').textContent =
+      user.name.charAt(0).toUpperCase();
+
+    // Pre-fill form
+    document.getElementById('name').value = user.name;
+    document.getElementById('email').value = user.email;
+
+    async function saveProfile() {
+      const successMsg = document.getElementById('successMsg');
+      const errorMsg = document.getElementById('errorMsg');
+      successMsg.classList.add('d-none');
+      errorMsg.classList.add('d-none');
+
+      const data = {
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        companyWebsite: document.getElementById('companyWebsite').value,
+        companyLinkedIn: document.getElementById('companyLinkedIn').value
+      };
+
+      const res = await fetch('/api/auth/update-profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(data)
+      });
+
+      const result = await res.json();
+
+      if (result.user) {
+        // Update localStorage
+        const currentUser = getUser();
+        localStorage.setItem('user', JSON.stringify({
+          ...currentUser,
+          name: result.user.name,
+          email: result.user.email
+        }));
+
+        successMsg.classList.remove('d-none');
+        successMsg.textContent = '✅ Profile updated successfully!';
+
+        // Update header
+        document.getElementById('companyName').textContent = result.user.name;
+        document.getElementById('companyEmail').textContent = result.user.email;
+        document.getElementById('avatarText').textContent =
+          result.user.name.charAt(0).toUpperCase();
+      } else {
+        errorMsg.classList.remove('d-none');
+        errorMsg.textContent = result.message || 'Failed to update profile';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -28,6 +28,14 @@ app.use('/api/applications', applicationRoutes);
 const profileRoutes = require('./routes/profile');
 app.use('/api/profile', profileRoutes);
 
+// Serve uploaded files
+app.use('/uploads', express.static('uploads'));
+
+// Upload Routes
+const uploadRoutes = require('./routes/upload');
+app.use('/api/upload', uploadRoutes);
+
+
 // Admin Routes
 const adminRoutes = require('./routes/admin');
 app.use('/api/admin', adminRoutes);
@@ -41,7 +49,7 @@ mongoose.connect(process.env.MONGO_URI)
   })
   .catch((err) => {
     console.log('❌ MongoDB connection failed:', err.message);
-  });
+});
 
 
 

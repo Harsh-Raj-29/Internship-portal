@@ -81,4 +81,22 @@ router.delete('/internship/:id', auth, adminOnly, async (req, res) => {
   }
 });
 
+
+router.patch('/fix-company', auth, adminOnly, async (req, res) => {
+  try {
+    const { oldCompanyId, newCompanyId } = req.body;
+
+    const result = await Internship.updateMany(
+      { company: oldCompanyId },
+      { company: newCompanyId }
+    );
+
+    res.json({
+      message: 'Fixed successfully',
+      updatedCount: result.modifiedCount
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 module.exports = router;

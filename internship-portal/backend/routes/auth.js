@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const auth = require('../middleware/auth');
 
 // REGISTER
 router.post('/register', async (req, res) => {
@@ -83,6 +84,52 @@ router.get('/me', (req, res) => {
     res.json({ valid: true, user: decoded });
   } catch {
     res.status(401).json({ message: 'Invalid token' });
+  }
+});
+
+// PATCH - Update email (for admin/testing)
+router.patch('/update-email', async (req, res) => {
+  try {
+    const { oldEmail, newEmail } = req.body;
+    const user = await User.findOneAndUpdate(
+      { email: oldEmail },
+      { email: newEmail },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'Email updated successfully', user });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
+// PATCH - Update company profile
+router.patch('/update-profile', auth, async (req, res) => {
+  try {
+    const { name, email, companyWebsite, companyLinkedIn } = req.body;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { name, email, companyWebsite, companyLinkedIn },
+      { new: true }
+    ).select('-password');
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
